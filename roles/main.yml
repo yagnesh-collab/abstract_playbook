@@ -1,0 +1,8 @@
+---
+- name: Setup Tutor Open edX with Custom frontend-app-authn
+  hosts: localhost
+  become: yes
+  roles:
+    - ansible-role-tutor
+  vars:
+    mfe_repo: "https://github.com/yagnesh-collab/frontend-app-authn.git"

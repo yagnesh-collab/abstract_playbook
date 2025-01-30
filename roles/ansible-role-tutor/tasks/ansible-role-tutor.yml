@@ -1,0 +1,46 @@
+---
+    - name: Ensure Required Dependencies are Installed
+      block:
+        - name: Install system dependencies
+          apt:
+            name:
+              - python3-pip
+              - docker.io
+              - docker-compose
+            state: present
+
+        - name: Install Tutor
+          pip:
+            name: tutor[full]
+            state: present
+
+    - name: Configure Tutor with Custom frontend-app-authn
+      command: tutor config save --set MFE_APP_AUTHN_REPO={{ mfe_repo }}
+
+    - name: Create buildkit.toml File
+      copy:
+        dest: "/etc/buildkit.toml"
+        content: |
+          [worker.oci]
+          max-parallelism = 1
+
+    - name: Configure BuildKit
+      shell: |
+        export DOCKER_BUILDKIT=1
+        systemctl restart docker
+
+    - name: Create and Use Buildx Builder
+      command: docker buildx create --use --name=singlecpu --driver=docker-container --config=/etc/buildkit.toml
+
+    - name: Build MFE Image
+      command: tutor images build mfe
+
+    - name: Start Open edX and MFE Services
+      command: tutor local start
+
+    - name: Verify Open edX Status
+      command: tutor local status
+      register: tutor_status
+
+    - debug:
+        msg: "Tutor Setup Complete. Status: {{ tutor_status.stdout }}"
